@@ -24,6 +24,17 @@ urlpatterns = [
     re_path(r'^authenticate$', views.authentication_request, name="authenticate"),
     re_path(r'^authenticate/register$', views.register_request, name="register"),
     re_path(r'^authenticate/logout', views.logout_request, name="logout"),
+
     re_path(r'^newsletter/subscribe', views.newsletter_subscribe, name="newsletter_subscribe"),
     re_path(r'^newsletter/unsubscribe', views.newsletter_unsubscribe, name="newsletter_unsubscribe"),
+
+    re_path(r'^category/create', views.category_create, name="category_create"),
+    re_path(r'^category/delete', views.category_delete, name="category_delete"),
+    re_path(r'^category/list', views.category_list, name="category_list"),
+
+    re_path(r'^post/create', views.post_create, name="post_create"),
+    re_path(r'^post/delete', views.post_delete, name="post_delete"),
+    re_path(r'^post/list', views.post_list, name="post_list"),
+    re_path(r'^post/detail', views.post_detail, name="post_detail"),
+    re_path(r'^post/update', views.post_update, name="post_update"),
 ]

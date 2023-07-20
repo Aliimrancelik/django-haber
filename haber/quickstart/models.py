@@ -20,12 +20,13 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
 class Haber(models.Model):
     slug = models.SlugField(unique=True, editable=False, max_length=130)
     title = models.CharField(max_length=120, verbose_name="Başlık")
+    image = models.ImageField(null=True, blank=True)
     content = RichTextField(verbose_name="İçerik")
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
-    publishing_date = models.DateTimeField(verbose_name="Yayımlanma Tarihi", auto_now_add=True)
+    user_id = models.IntegerField(editable=False, default=0)
+    publishing_date = models.DateTimeField(verbose_name="Yayımlanma Tarihi", auto_now_add=True, editable=False)
     view_counter = models.IntegerField(editable=False, default=0)
-    category = models.ForeignKey('quickstart.Categorise', verbose_name="Kategori", on_delete=models.CASCADE,
-                                 related_name="haber")
+    category_slug = models.CharField(max_length=150, verbose_name="Kategori Slug")
+    show_status = models.BooleanField(editable=True, default=True)
 
     def get_unique_slug(self):
         slug = slugify(self.title.replace('ı', 'i'))
@@ -36,9 +37,19 @@ class Haber(models.Model):
             counter += 1
         return unique_slug
 
+    def get_category_slug(self):
+        cat_slug = self.category_slug
+        listing = Categorise.objects.filter(slug=cat_slug);
+        if listing:
+            return listing[0].slug
+        else:
+            return ""
+
     def save(self, *args, **kwargs):
         self.slug = self.get_unique_slug()
-        return super(Haber, self).save(*args, **kwargs)
+        self.category_slug = self.get_category_slug()
+        if(self.category_slug != ""):
+            return super(Haber, self).save(*args, **kwargs)
 
     class Meta:
         ordering = ['-publishing_date', 'id']
@@ -47,6 +58,9 @@ class Haber(models.Model):
 class Categorise(models.Model):
     slug = models.SlugField(unique=True, editable=False, max_length=130)
     title = models.CharField(max_length=120, verbose_name="Başlık")
+
+    def __str__(self):
+        return self.slug
 
     def get_unique_slug(self):
         slug = slugify(self.title.replace('ı', 'i'))

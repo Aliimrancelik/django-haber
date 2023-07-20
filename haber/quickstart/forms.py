@@ -23,9 +23,28 @@ class NewUserForm(UserCreationForm):
 
 
 class NewsletterForm(forms.ModelForm):
-
     class Meta:
         model = Newsletter
         fields = [
             'email'
+        ]
+
+
+class CreateCategoryForm(forms.ModelForm):
+    class Meta:
+        model = Categorise
+        fields = [
+            'title',
+        ]
+
+
+class CreatePostForm(forms.ModelForm):
+    class Meta:
+        model = Haber
+        fields = [
+            'title',
+            'content',
+            'category_slug',
+            'image',
+            'show_status',
         ]
