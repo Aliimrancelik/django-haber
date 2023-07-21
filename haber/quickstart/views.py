@@ -1,3 +1,5 @@
+import math
+
 import jwt
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
@@ -70,6 +72,17 @@ def get_post_with_page(posts, page_max, page):
     except EmptyPage:
         return_categories = paginator.page(paginator.num_pages)
     return return_categories
+
+
+def get_post_total_page(posts, page_max):
+    posts_len = len(posts)
+    page_max = int(page_max)
+    if page_max <= 1:
+        page_max = 1
+    add_amount = 0
+    if (posts_len % page_max) > 0:
+        add_amount = 1
+    return math.floor(posts_len / page_max) + add_amount
 
 
 def get_category_from_slug(category_slug):
@@ -294,7 +307,7 @@ def post_list(request):
             category_info = build_default_category_info(get_category_from_slug(list_post_item.category_slug), list_post_item.category_slug)
             append_item = post_return_model(list_post_item, author_name, category_info)
             return_posts.append(append_item)
-        return JsonResponse({'success': True, 'status': 200, 'message': 'success', 'posts': return_posts})
+        return JsonResponse({'success': True, 'status': 200, 'message': 'success', 'total_page': get_post_total_page(listing, page_max), 'posts': return_posts})
     return JsonResponse({'success': False, 'status': 404, 'message': 'invalid_method'})
 
 
@@ -365,6 +378,40 @@ def post_update(request):
                 except:
                     return JsonResponse({'success': False, 'status': 400, 'message': 'not_found'})
             return JsonResponse({'success': False, 'status': 400, 'message': 'not_found'})
+        return JsonResponse({'success': False, 'status': 403, 'message': 'not_authenticated'})
+    return JsonResponse({'success': False, 'status': 404, 'message': 'invalid_method'})
+
+
+@csrf_exempt
+def post_update_status(request):
+    if request.method == "POST":
+        auth_status, auth_user = check_auth(request)
+        if auth_status:
+            r_slug = request.GET.get("slug")
+            r_id = request.GET.get("id")
+            if r_slug or r_id:
+                try:
+                    if r_id:
+                        listing = Haber.objects.get(id=r_id)
+                    elif r_slug:
+                        listing = Haber.objects.get(slug=r_slug)
+                    if listing:
+                        update_status = False
+                        if request.POST.get("show_status") == "true":
+                            update_status = True
+                        Haber.objects.filter(id=listing.pk).update(show_status=update_status)
+                        author_name = ""
+                        get_status, user_info = get_user_from_id(listing.user_id)
+                        if get_status:
+                            author_name = user_info.username
+
+                        category_info = build_default_category_info(get_category_from_slug(listing.category_slug), listing.category_slug)
+                        append_item = post_return_model(listing, author_name, category_info)
+
+                        return JsonResponse({'success': True, 'status': 200, 'message': 'success', 'data': append_item})
+                except:
+                    return JsonResponse({'success': False, 'status': 400, 'message': 'anot_found'})
+            return JsonResponse({'success': False, 'status': 400, 'message': 'bnot_found'})
         return JsonResponse({'success': False, 'status': 403, 'message': 'not_authenticated'})
     return JsonResponse({'success': False, 'status': 404, 'message': 'invalid_method'})
 

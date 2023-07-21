@@ -37,4 +37,5 @@ urlpatterns = [
     re_path(r'^post/list', views.post_list, name="post_list"),
     re_path(r'^post/detail', views.post_detail, name="post_detail"),
     re_path(r'^post/update', views.post_update, name="post_update"),
+    re_path(r'^post/status/update', views.post_update_status, name="post_update_status"),
 ]
