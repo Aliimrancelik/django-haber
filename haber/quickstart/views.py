@@ -3,13 +3,14 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import TextField, Q, F
 from django.contrib.auth import login, authenticate, logout
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
+from django.template import RequestContext
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
 JWT_authenticator = JWTAuthentication()
+
 
 from .forms import *
 from .models import *
@@ -117,6 +118,7 @@ def build_default_category_info(r_category, d_info=""):
             "slug": c_info.slug
         }
     return category_info
+
 
 # Create your views here.
 @csrf_exempt
@@ -259,7 +261,15 @@ def post_delete(request):
 def post_list(request):
     if request.method == "GET":
         return_posts = []
-        listing = Haber.objects.all()
+
+        post_is_superuser = False
+        auth_status, auth_user = check_auth(request)
+        if auth_status:
+            post_is_superuser = True
+        if post_is_superuser:
+            listing = Haber.objects.all()
+        else:
+            listing = Haber.objects.filter(show_status=True)
 
         query = request.GET.get('q')
         if query:
@@ -275,10 +285,6 @@ def post_list(request):
             page_max = request.GET.get("page_max")
         listing_page = get_post_with_page(listing, page_max, request.GET.get('page'))
 
-        post_is_superuser = False
-        auth_status, auth_user = check_auth(request)
-        if auth_status:
-            post_is_superuser = True
         for list_post_item in listing_page:
             author_name = ""
             get_status, user_info = get_user_from_id(list_post_item.user_id)
@@ -287,8 +293,7 @@ def post_list(request):
 
             category_info = build_default_category_info(get_category_from_slug(list_post_item.category_slug), list_post_item.category_slug)
             append_item = post_return_model(list_post_item, author_name, category_info)
-            if list_post_item.show_status or post_is_superuser:
-                return_posts.append(append_item)
+            return_posts.append(append_item)
         return JsonResponse({'success': True, 'status': 200, 'message': 'success', 'posts': return_posts})
     return JsonResponse({'success': False, 'status': 404, 'message': 'invalid_method'})
 
