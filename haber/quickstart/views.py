@@ -275,11 +275,8 @@ def post_list(request):
     if request.method == "GET":
         return_posts = []
 
-        post_is_superuser = False
         auth_status, auth_user = check_auth(request)
         if auth_status:
-            post_is_superuser = True
-        if post_is_superuser:
             listing = Haber.objects.all()
         else:
             listing = Haber.objects.filter(show_status=True)
@@ -397,8 +394,9 @@ def post_update_status(request):
                         listing = Haber.objects.get(slug=r_slug)
                     if listing:
                         update_status = False
-                        if request.POST.get("show_status") == "true":
+                        if request.POST.get("show_status") == "true" or request.POST.get("show_status") == "True" or request.POST.get("show_status") == True:
                             update_status = True
+                        listing.show_status = update_status
                         Haber.objects.filter(id=listing.pk).update(show_status=update_status)
                         author_name = ""
                         get_status, user_info = get_user_from_id(listing.user_id)
