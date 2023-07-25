@@ -275,20 +275,37 @@ def post_list(request):
     if request.method == "GET":
         return_posts = []
 
+        query_category = request.GET.get('c')
+
         auth_status, auth_user = check_auth(request)
         if auth_status:
-            listing = Haber.objects.all()
+            if query_category:
+                listing = Haber.objects.filter(category_slug=query_category)
+            else:
+                listing = Haber.objects.all()
         else:
-            listing = Haber.objects.filter(show_status=True)
+            if query_category:
+                listing = Haber.objects.filter(show_status=True, category_slug=query_category)
+            else:
+                listing = Haber.objects.filter(show_status=True)
 
         query = request.GET.get('q')
         if query:
-            listing = listing.filter(
-                Q(title__icontains=query) |
-                Q(slug__icontains=query) |
-                Q(content__icontains=query) |
-                Q(category_slug__icontains=query)
-            ).distinct()
+            if auth_status:
+                listing = listing.filter(
+                    Q(title__icontains=query) |
+                    Q(slug__icontains=query) |
+                    Q(content__icontains=query) |
+                    Q(category_slug__icontains=query)
+                ).distinct()
+            else:
+                listing = listing.filter(
+                    Q(title__icontains=query) |
+                    Q(slug__icontains=query) |
+                    Q(content__icontains=query) |
+                    Q(category_slug__icontains=query) |
+                    Q(show_status=True)
+                ).distinct()
 
         page_max = 5
         if request.GET.get("page_max") is not None:
