@@ -314,22 +314,23 @@ def post_list(request):
     if request.method == "GET":
         return_posts = []
 
-        listing = Haber.objects.filter(show_status=True)
 
         query_category = request.GET.get('c')
         category_error = False
 
         auth_status, auth_user = check_auth(request)
-
+        if auth_status:
+            listing = Haber.objects.all()
+        else:
+            listing = Haber.objects.filter(show_status=True)
         if query_category:
             c_status, c_info = get_category_from_slug(query_category);
             if c_status:
                 if auth_status:
                     listing = Haber.objects.filter(category_slug=query_category)
                 else:
-                    listing = Haber.objects.all()
+                    listing = Haber.objects.filter(show_status=True, category_slug=query_category)
             else:
-                listing = Haber.objects.filter(show_status=True, category_slug=query_category)
                 category_error = True
 
         query = request.GET.get('q')
