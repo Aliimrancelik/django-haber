@@ -48,3 +48,15 @@ class CreatePostForm(forms.ModelForm):
             'image',
             'show_status',
         ]
+
+
+class CreateCommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = [
+            "user_name",
+            "title",
+            "text",
+            "post_id",
+            "show_status"
+        ]

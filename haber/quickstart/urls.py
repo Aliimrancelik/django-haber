@@ -38,4 +38,11 @@ urlpatterns = [
     re_path(r'^post/detail', views.post_detail, name="post_detail"),
     re_path(r'^post/update', views.post_update, name="post_update"),
     re_path(r'^post/status/update', views.post_update_status, name="post_update_status"),
+
+    re_path(r'^comment/create', views.comment_create, name="comment_create"),
+    re_path(r'^comment/delete', views.comment_delete, name="comment_delete"),
+    re_path(r'^comment/list', views.comment_list, name="comment_list"),
+    re_path(r'^comment/detail', views.comment_detail, name="comment_detail"),
+    re_path(r'^comment/update', views.comment_update, name="comment_update"),
+    re_path(r'^comment/status/update', views.comment_update_status, name="comment_update_status"),
 ]

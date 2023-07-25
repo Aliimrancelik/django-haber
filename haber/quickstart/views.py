@@ -94,6 +94,24 @@ def get_category_from_slug(category_slug):
         return False, {}
     return False, {}
 
+def get_post_from_id(post_id):
+    try:
+        listing = Haber.objects.get(id=post_id)
+        if listing:
+            return True, listing
+    except:
+        return False, {}
+    return False, {}
+
+def get_comment_from_id(comment_id):
+    try:
+        listing = Comment.objects.get(id=comment_id)
+        if listing:
+            return True, listing
+    except:
+        return False, {}
+    return False, {}
+
 
 def post_return_model(list_post_item, author_name = "", category_info = {"id":0}):
     if category_info.get("id") == 0:
@@ -119,6 +137,18 @@ def post_return_model(list_post_item, author_name = "", category_info = {"id":0}
         "show_status": list_post_item.show_status
     }
 
+
+def comment_return_model(list_comment_item, post_info = {"id":0}):
+    return {
+        "id": list_comment_item.id,
+        "user_name": list_comment_item.user_name,
+        "title": list_comment_item.title,
+        "text": list_comment_item.text,
+        "publishing_date": list_comment_item.publishing_date,
+        "post_id": list_comment_item.post_id,
+        "show_status": list_comment_item.show_status
+    }
+
 def build_default_category_info(r_category, d_info=""):
     c_status, c_info = r_category
     category_info = {
@@ -131,6 +161,15 @@ def build_default_category_info(r_category, d_info=""):
             "slug": c_info.slug
         }
     return category_info
+
+def build_default_post_info(r_post, d_info=0):
+    c_status, c_info = r_post
+    return_info = {
+        "id": 0
+    }
+    if c_status:
+        return_info = post_return_model(c_info)
+    return return_info
 
 
 # Create your views here.
@@ -275,19 +314,23 @@ def post_list(request):
     if request.method == "GET":
         return_posts = []
 
+        listing = Haber.objects.filter(show_status=True)
+
         query_category = request.GET.get('c')
+        category_error = False
 
         auth_status, auth_user = check_auth(request)
-        if auth_status:
-            if query_category:
-                listing = Haber.objects.filter(category_slug=query_category)
+
+        if query_category:
+            c_status, c_info = get_category_from_slug(query_category);
+            if c_status:
+                if auth_status:
+                    listing = Haber.objects.filter(category_slug=query_category)
+                else:
+                    listing = Haber.objects.all()
             else:
-                listing = Haber.objects.all()
-        else:
-            if query_category:
                 listing = Haber.objects.filter(show_status=True, category_slug=query_category)
-            else:
-                listing = Haber.objects.filter(show_status=True)
+                category_error = True
 
         query = request.GET.get('q')
         if query:
@@ -321,7 +364,10 @@ def post_list(request):
             category_info = build_default_category_info(get_category_from_slug(list_post_item.category_slug), list_post_item.category_slug)
             append_item = post_return_model(list_post_item, author_name, category_info)
             return_posts.append(append_item)
-        return JsonResponse({'success': True, 'status': 200, 'message': 'success', 'total_page': get_post_total_page(listing, page_max), 'posts': return_posts})
+        if category_error:
+            return JsonResponse({'success': False, 'status': 401, 'message': 'wrong_category'})
+        else:
+            return JsonResponse({'success': True, 'status': 200, 'message': 'success', 'total_page': get_post_total_page(listing, page_max), 'posts': return_posts})
     return JsonResponse({'success': False, 'status': 404, 'message': 'invalid_method'})
 
 
@@ -425,8 +471,8 @@ def post_update_status(request):
 
                         return JsonResponse({'success': True, 'status': 200, 'message': 'success', 'data': append_item})
                 except:
-                    return JsonResponse({'success': False, 'status': 400, 'message': 'anot_found'})
-            return JsonResponse({'success': False, 'status': 400, 'message': 'bnot_found'})
+                    return JsonResponse({'success': False, 'status': 400, 'message': 'not_found'})
+            return JsonResponse({'success': False, 'status': 400, 'message': 'not_found'})
         return JsonResponse({'success': False, 'status': 403, 'message': 'not_authenticated'})
     return JsonResponse({'success': False, 'status': 404, 'message': 'invalid_method'})
 
@@ -481,3 +527,131 @@ def newsletter_unsubscribe(request):
             return JsonResponse({'success': True, 'status': 200, 'message': "success"})
         return JsonResponse({'success': False, 'status': 401, 'message': "invalid_credentials"})
     return JsonResponse({'success': False, 'status': 404, 'message': "invalid_method"})
+
+
+@csrf_exempt
+def comment_create(request):
+    if request.method == "POST":
+        form = CreateCommentForm(request.POST or None)
+        if form.is_valid():
+            form = form.save(commit=False)
+            post_info = build_default_post_info(get_post_from_id(form.post_id), form.post_id)
+            if post_info.get("id") != 0:
+                form.save()
+                try:
+                    listing = Comment.objects.get(id=form.id)
+                    if listing:
+                        append_item = comment_return_model(listing)
+                        return JsonResponse({'success': True, 'status': 200, 'message': 'success', 'post': append_item})
+                except:
+                    ()
+                append_item = comment_return_model(form)
+                return JsonResponse({'success': True, 'status': 200, 'message': 'success', 'post': append_item})
+            return JsonResponse({'success': False, 'status': 401, 'message': 'post_not_found'})
+        return JsonResponse({'success': False, 'status': 403, 'message': 'not_authenticated'})
+    return JsonResponse({'success': False, 'status': 404, 'message': 'invalid_method'})
+
+
+@csrf_exempt
+def comment_delete(request):
+    if request.method == "DELETE":
+        auth_status, auth_user = check_auth(request)
+        if auth_status:
+            if request.GET.get("comment_id"):
+                listing = Comment.objects.filter(id=request.GET.get("comment_id"))
+                if listing:
+                    listing.delete()
+                    return JsonResponse({'success': True, 'status': 200, 'message': 'success'})
+            return JsonResponse({'success': False, 'status': 400, 'message': 'not_found'})
+        return JsonResponse({'success': False, 'status': 403, 'message': 'not_authenticated'})
+    return JsonResponse({'success': False, 'status': 404, 'message': 'invalid_method'})
+
+
+@csrf_exempt
+def comment_list(request):
+    if request.method == "GET":
+        return_posts = []
+
+        query_post = request.GET.get('post_id')
+
+        auth_status, auth_user = check_auth(request)
+        if auth_status:
+            if query_post:
+                listing = Comment.objects.filter(post_id=query_post)
+            else:
+                listing = Comment.objects.all()
+        else:
+            if query_post:
+                listing = Comment.objects.filter(show_status=True, post_id=query_post)
+            else:
+                listing = Comment.objects.filter(show_status=True)
+
+        page_max = 5
+        if request.GET.get("page_max") is not None:
+            page_max = request.GET.get("page_max")
+        listing_page = get_post_with_page(listing, page_max, request.GET.get('page'))
+
+        for list_post_item in listing_page:
+            append_item = comment_return_model(list_post_item)
+            return_posts.append(append_item)
+        return JsonResponse({'success': True, 'status': 200, 'message': 'success', 'total_page': get_post_total_page(listing, page_max), 'posts': return_posts})
+    return JsonResponse({'success': False, 'status': 404, 'message': 'invalid_method'})
+
+
+@csrf_exempt
+def comment_detail(request):
+    return ""
+
+
+@csrf_exempt
+def comment_update(request):
+    if request.method == "POST":
+        auth_status, auth_user = check_auth(request)
+        if auth_status:
+            r_id = request.GET.get("id")
+            if r_id:
+                try:
+                    listing = Comment.objects.get(id=r_id)
+                    if listing:
+                        form = CreateCommentForm(request.POST or None, instance=listing)
+                        if form.is_valid():
+                            listing = form.save(commit=False)
+                            if listing.post_id != 0:
+                                form.save()
+
+                                append_item = comment_return_model(listing)
+
+                                return JsonResponse({'success': True, 'status': 200, 'message': 'success', 'data': append_item})
+                            else:
+                                return JsonResponse({'success': False, 'status': 401, 'message': 'category_not_found'})
+                except:
+                    return JsonResponse({'success': False, 'status': 400, 'message': 'anot_found'})
+            return JsonResponse({'success': False, 'status': 400, 'message': 'not_found'})
+        return JsonResponse({'success': False, 'status': 403, 'message': 'not_authenticated'})
+    return JsonResponse({'success': False, 'status': 404, 'message': 'invalid_method'})
+
+
+@csrf_exempt
+def comment_update_status(request):
+    if request.method == "POST":
+        auth_status, auth_user = check_auth(request)
+        if auth_status:
+            r_id = request.GET.get("id")
+            if r_id:
+                try:
+                    listing = Comment.objects.get(id=r_id)
+                    if listing:
+                        update_status = False
+                        if request.POST.get("show_status") == "true" or request.POST.get("show_status") == "True" or request.POST.get("show_status") == True:
+                            update_status = True
+                        listing.show_status = update_status
+                        Comment.objects.filter(id=listing.pk).update(show_status=update_status)
+
+                        append_item = comment_return_model(listing)
+
+                        return JsonResponse({'success': True, 'status': 200, 'message': 'success', 'data': append_item})
+                except:
+                    return JsonResponse({'success': False, 'status': 400, 'message': 'not_found'})
+            return JsonResponse({'success': False, 'status': 400, 'message': 'not_found'})
+        return JsonResponse({'success': False, 'status': 403, 'message': 'not_authenticated'})
+    return JsonResponse({'success': False, 'status': 404, 'message': 'invalid_method'})

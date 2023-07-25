@@ -77,12 +77,15 @@ class Categorise(models.Model):
 
 
 class Comment(models.Model):
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
+    user_name = models.CharField(max_length=50, verbose_name="İsim")
+    title = models.CharField(max_length=100, verbose_name="Başlık")
     text = models.CharField(max_length=250, verbose_name="Yorum")
     publishing_date = models.DateTimeField(verbose_name="Yayımlanma Tarihi", auto_now_add=True)
+    post_id = models.IntegerField(default=0)
+    show_status = models.BooleanField(editable=True, default=True)
 
     def save(self, *args, **kwargs):
-        return super(Categorise, self).save(*args, **kwargs)
+        return super(Comment, self).save(*args, **kwargs)
 
 
 class Newsletter(models.Model):
