@@ -11,6 +11,8 @@ from django.template import RequestContext
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from datetime import date, timedelta, datetime
+
 JWT_authenticator = JWTAuthentication()
 
 
@@ -350,6 +352,14 @@ def post_list(request):
                     Q(category_slug__icontains=query) |
                     Q(show_status=True)
                 ).distinct()
+
+        order = request.GET.get("order_days")
+        if order:
+            date = datetime.now()-timedelta(days=int(order))
+            if auth_status:
+                listing = Haber.objects.filter(publishing_date__gte=date).order_by("view_counter")
+            else:
+                listing = Haber.objects.filter(show_status=True,publishing_date__gte=date).order_by("view_counter")
 
         page_max = 5
         if request.GET.get("page_max") is not None:
