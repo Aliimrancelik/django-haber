@@ -123,8 +123,11 @@ def post_return_model(list_post_item, author_name = "", category_info = {"id":0}
             "title": ""
         }
     image_url = ""
-    if list_post_item.image and list_post_item.image.url:
-        image_url = list_post_item.image.url
+    if list_post_item.image:
+        if list_post_item.image.url:
+            image_url = list_post_item.image.url
+        else:
+            image_url = list_post_item.image
     return {
         "id": list_post_item.id,
         "title": list_post_item.title,
