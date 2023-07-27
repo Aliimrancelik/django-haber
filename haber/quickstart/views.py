@@ -364,6 +364,9 @@ def post_list(request):
             else:
                 listing = Haber.objects.filter(show_status=True,publishing_date__gte=date).order_by("view_counter")
 
+        if request.GET.get("randomize"):
+            listing = listing.order_by("?")
+
         page_max = 5
         if request.GET.get("page_max") is not None:
             page_max = request.GET.get("page_max")
